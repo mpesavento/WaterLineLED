@@ -6,16 +6,16 @@
 #define COLOR_ORDER BGR  // most of the 10mm black APA102
 
 #define CHIPSET     APA102
-#define NUM_LEDS    100
+#define NUM_LEDS    300
 
-#define FPS 20
+#define FPS 100
 
 //CRGB leds[NUM_LEDS];
 CRGBArray<NUM_LEDS> leds;
 
 CRGBPalette16 currentPalette;
 TBlendType    currentBlending;
-int brightness = 50;
+int brightness = 75;
 
 
 uint8_t values[NUM_LEDS];
@@ -24,7 +24,6 @@ void setup() {
   delay(1000); // sanity delay
 
   FastLED.addLeds<CHIPSET, DATA_PIN, CLOCK_PIN, COLOR_ORDER, DATA_RATE_MHZ(8)>(leds, NUM_LEDS).setCorrection( TypicalSMD5050 );
-  //FastLED.addLeds<CHIPSET, COLOR_ORDER>(leds, NUM_LEDS).setCorrection( TypicalSMD5050 );
   FastLED.setBrightness( brightness );
 
   currentPalette = OceanColors_p;
@@ -35,24 +34,32 @@ void setup() {
 
 void loop()
 {
-
   static uint8_t paletteIndex = 0; // the number of pixels that the pattern phase shifts each time
-  paletteIndex += 1;
-  FillLEDsFromPaletteColors(paletteIndex);
+  // decouple the rate from the index by waiting for some time
+  EVERY_N_MILLISECONDS( 50 ) { paletteIndex++; }  
+  fill_mirror_from_palette(paletteIndex);
   FastLED.show();
   delayToSyncFrameRate(FPS);
 }
 
 void FillLEDsFromPaletteColors( uint8_t colorIndex)
 {
-    uint8_t brightness = 255;
-    
     for( int i = 0; i < NUM_LEDS; i++) {
-        leds[i] = ColorFromPalette( currentPalette, colorIndex, brightness, currentBlending);
+        leds[i] = ColorFromPalette( currentPalette, colorIndex, 255, currentBlending);
         // the shift along color index changes the frequency of the pattern oscillations
         // higher numbers increase the frequency, shortening the period
         colorIndex += 1; // from PaletteTrace.ino
     }
+}
+
+
+void fill_mirror_from_palette(uint8_t colorIndex)
+{
+  for(int i=0; i < int(NUM_LEDS/2); i++) {
+    leds[i] = ColorFromPalette(currentPalette, colorIndex, 255, currentBlending);
+    leds[NUM_LEDS - i - 1] = leds[i];
+    colorIndex += 1; // the color shift frequency
+  }
 }
 
 
